@@ -1,10 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
 import logging
+import lxml
 
 user = 'aleksandra.grinina@mail.ru'
 password = 'Fixprice123'
 base_url = 'https://fix-price.ru/personal/#profile'
+action_url = 'https://fix-price.ru/actions/'
 
 def url_auth(user, password):
     session = requests.Session()
@@ -25,7 +27,7 @@ def url_auth(user, password):
 def url_get(base_url):
     session = url_auth(user, password)
     request = session.get(base_url)
-    soup = BeautifulSoup(request.content, 'html.parser')
+    soup = BeautifulSoup(request.content, 'lxml')
     name = soup.find("input", attrs={"name": "NAME"})['value']
     last_name = soup.find("input", attrs={"name": "LAST_NAME"})['value']
     second_name = soup.find("input", attrs={"name": "SECOND_NAME"})['value']
@@ -40,7 +42,6 @@ def url_get(base_url):
     personal_city = soup.find("select", attrs={"name": "PERSONAL_CITY"})['data-value']
     personal_card_number = soup.find("div", attrs={"class": "personal-card__number"}).text
 #    return name, second_name, last_name, email, personal_birthday, personal_gender, personal_city, personal_zip, personal_card_number
-
 #Избранное
     all_favorites = []
     favorites = soup.find_all('div', attrs={"class": "main-list__card-item"})
@@ -53,14 +54,6 @@ def url_get(base_url):
             "product_name": product_name_just,
             "price": price
         })
-#Акции
-    try:
-        pagination = soup.find_all("ul", attrs={"class": "paging__list"})
-    except:
-        pass
-    for i in pagination:
-        print(i['class'])
-
     with open('pesonal_data.txt', 'w', encoding='utf-8') as file:
         file.write(f"Фамилия: {last_name}\n")
         file.write(f"Имя: {name}\n")
@@ -75,8 +68,23 @@ def url_get(base_url):
         file.write("Избранное:\n")
         for item in all_favorites:
             file.write(f"Товар: {item['product_name']} Цена: {item['price']} руб.\n")
+        file.write("\n")
+#Акции
+def url_action(action_url):
+    session = url_auth(user, password)
+    actionUrl = session.get(action_url)
+    soup_action = BeautifulSoup(actionUrl.content, 'lxml')
+    try:
+        pagination = soup_action.find_all("li", attrs={"class": "paging__item"})
+        print(pagination)
+    except:
+        pass
+    for i in pagination:
+        print(i)
+
 
 
 #url_auth(user, password)
 #personal_data()
 url_get(base_url)
+url_action(action_url)
