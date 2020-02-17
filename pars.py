@@ -1,12 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
-import logging
 import lxml
 
-user = 'aleksandra.grinina@mail.ru'
-password = 'Fixprice123'
+user = input("Введите login: ")
+password = input("Введите пароль: ")
 base_url = 'https://fix-price.ru/personal/#profile'
 action_url = 'https://fix-price.ru/actions/'
+file_name = f"{user}__ParsingData.txt"
 
 def url_auth(user, password):
     session = requests.Session()
@@ -24,7 +24,7 @@ def url_auth(user, password):
         print("error auth")
         return exit(1)
 
-def url_get(base_url):
+def url_get(base_url, file_name):
     session = url_auth(user, password)
     request = session.get(base_url)
     soup = BeautifulSoup(request.content, 'lxml')
@@ -41,7 +41,6 @@ def url_get(base_url):
     personal_zip = soup.find("input", attrs={"name": "PERSONAL_ZIP"})['value']
     personal_city = soup.find("select", attrs={"name": "PERSONAL_CITY"})['data-value']
     personal_card_number = soup.find("div", attrs={"class": "personal-card__number"}).text
-#    return name, second_name, last_name, email, personal_birthday, personal_gender, personal_city, personal_zip, personal_card_number
 #Избранное
     all_favorites = []
     favorites = soup.find_all('div', attrs={"class": "main-list__card-item"})
@@ -54,7 +53,7 @@ def url_get(base_url):
             "product_name": product_name_just,
             "price": price
         })
-    with open('pesonal_data.txt', 'w', encoding='utf-8') as file:
+    with open(file_name, 'w', encoding='utf-8') as file:
         file.write(f"Фамилия: {last_name}\n")
         file.write(f"Имя: {name}\n")
         file.write(f"Отчество: {second_name}\n")
@@ -70,21 +69,36 @@ def url_get(base_url):
             file.write(f"Товар: {item['product_name']} Цена: {item['price']} руб.\n")
         file.write("\n")
 #Акции
-def url_action(action_url):
+def url_action(action_url,file_name):
     session = url_auth(user, password)
-    actionUrl = session.get(action_url)
-    soup_action = BeautifulSoup(actionUrl.content, 'lxml')
+    action = session.get(action_url)
+    soup = BeautifulSoup(action.content, 'lxml')
+    action_url = []
     try:
-        pagination = soup_action.find_all("li", attrs={"class": "paging__item"})
-        print(pagination)
+        pagination = soup.find_all("li", attrs={"class": "paging__item"})
+        last_page = int(pagination[-1].text)
+        for page in range(1, last_page +1):
+            newPage = f'https://fix-price.ru/actions/?PAGEN_2={page}'
+            action_page = session.get(newPage)
+            soup = BeautifulSoup(action_page.content, 'lxml')
+            items = soup.find_all("a", attrs={"class": "action-block__item"})
+            for item in items:
+                date = soup.find("div", attrs={"class": "action-card__date"}).text
+                if not "акция завершена" in date:
+                    title = item.find("h4", attrs={"class": "action-card__info"}).text
+                    title = title.strip()
+                    title = title.ljust(100, " ")
+                    href = item['href']
+                    action_url.append({
+                        "Action": title,
+                        "Url": f"https://fix-price.ru{href}"
+                    })
+        with open(file_name, 'a', encoding='utf-8') as file:
+            file.write("Акции:\n")
+            for item in action_url:
+                file.write(f"Акция: {item['Action']} Ссылка: {item['Url']}\n")
     except:
         pass
-    for i in pagination:
-        print(i)
-
-
-
-#url_auth(user, password)
-#personal_data()
-url_get(base_url)
-url_action(action_url)
+if __name__=='__main__':
+    url_get(base_url, file_name)
+    url_action(action_url, file_name)
