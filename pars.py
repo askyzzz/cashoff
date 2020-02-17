@@ -41,30 +41,40 @@ def url_get(base_url):
     personal_card_number = soup.find("div", attrs={"class": "personal-card__number"}).text
 #    return name, second_name, last_name, email, personal_birthday, personal_gender, personal_city, personal_zip, personal_card_number
 
+#Избранное
     all_favorites = []
     favorites = soup.find_all('div', attrs={"class": "main-list__card-item"})
     for product in favorites:
         product_name = product.find("a", attrs={"class": "product-card__title"}).text
         product_name_strip= product_name.strip()
+        product_name_just = product_name_strip.ljust(50, " ")
         price = product.find("span", attrs={"itemprop": "price"}).text
         all_favorites.append({
-            "product_name": product_name_strip,
+            "product_name": product_name_just,
             "price": price
         })
-#        print(product_name)
+#Акции
+    try:
+        pagination = soup.find_all("ul", attrs={"class": "paging__list"})
+    except:
+        pass
+    for i in pagination:
+        print(i['class'])
 
     with open('pesonal_data.txt', 'w', encoding='utf-8') as file:
         file.write(f"Фамилия: {last_name}\n")
         file.write(f"Имя: {name}\n")
         file.write(f"Отчество: {second_name}\n")
+        file.write(f"EMAIL: {email}\n")
         file.write(f"Дата рождения: {personal_birthday}\n")
         file.write(f"Пол: {personal_gender}\n")
         file.write(f"Город: {personal_city}\n")
         file.write(f"Почтовый индекс: {personal_zip}\n")
         file.write(f"Номер карты: {personal_card_number}\n")
-        file.write("Избранное\n")
+        file.write("\n")
+        file.write("Избранное:\n")
         for item in all_favorites:
-            file.write(f"Товар: {item['product_name']} Цена: {item['price']}\n")
+            file.write(f"Товар: {item['product_name']} Цена: {item['price']} руб.\n")
 
 
 #url_auth(user, password)
